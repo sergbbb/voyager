@@ -50,11 +50,25 @@ abstract class SchemaManager
 
         $params = [
             'driver' => static::getDoctrineDriver($connection->getDriverName()),
-            'pdo'    => $connection->getPdo(),
         ];
+
+        $pdo = $connection->getPdo();
+        if ($pdo) {
+            $params['pdo'] = $pdo;
+        }
 
         if ($connection->getDriverName() !== 'sqlite') {
             $params['dbname'] = $connection->getDatabaseName();
+            $params['host'] = $connection->getConfig('host');
+            $params['port'] = $connection->getConfig('port');
+            $params['user'] = $connection->getConfig('username');
+            $params['password'] = $connection->getConfig('password');
+            $params['charset'] = $connection->getConfig('charset');
+
+            $unixSocket = $connection->getConfig('unix_socket');
+            if (!empty($unixSocket)) {
+                $params['unix_socket'] = $unixSocket;
+            }
         }
 
         static::$doctrineConnection = DriverManager::getConnection($params);
