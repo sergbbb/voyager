@@ -2,6 +2,8 @@
 
 namespace TCG\Voyager\Database\Schema;
 
+use Doctrine\DBAL\Connection as DoctrineConnection;
+use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Schema\SchemaException;
 use Doctrine\DBAL\Schema\Table as DoctrineTable;
 use Illuminate\Support\Facades\DB;
@@ -10,6 +12,7 @@ use TCG\Voyager\Database\Types\Type;
 abstract class SchemaManager
 {
     // todo: trim parameters
+    protected static $doctrineConnection;
 
     public static function __callStatic($method, $args)
     {
@@ -18,12 +21,57 @@ abstract class SchemaManager
 
     public static function manager()
     {
-        return DB::connection()->getDoctrineSchemaManager();
+        $connection = DB::connection();
+
+        if (method_exists($connection, 'getDoctrineSchemaManager')) {
+            return $connection->getDoctrineSchemaManager();
+        }
+
+        $doctrineConnection = static::getDatabaseConnection();
+
+        if (method_exists($doctrineConnection, 'createSchemaManager')) {
+            return $doctrineConnection->createSchemaManager();
+        }
+
+        return $doctrineConnection->getSchemaManager();
     }
 
     public static function getDatabaseConnection()
     {
-        return DB::connection()->getDoctrineConnection();
+        $connection = DB::connection();
+
+        if (method_exists($connection, 'getDoctrineConnection')) {
+            return $connection->getDoctrineConnection();
+        }
+
+        if (static::$doctrineConnection instanceof DoctrineConnection) {
+            return static::$doctrineConnection;
+        }
+
+        $params = [
+            'driver' => static::getDoctrineDriver($connection->getDriverName()),
+            'pdo'    => $connection->getPdo(),
+        ];
+
+        if ($connection->getDriverName() !== 'sqlite') {
+            $params['dbname'] = $connection->getDatabaseName();
+        }
+
+        static::$doctrineConnection = DriverManager::getConnection($params);
+
+        return static::$doctrineConnection;
+    }
+
+    protected static function getDoctrineDriver($driver)
+    {
+        $drivers = [
+            'mysql'  => 'pdo_mysql',
+            'pgsql'  => 'pdo_pgsql',
+            'sqlite' => 'pdo_sqlite',
+            'sqlsrv' => 'pdo_sqlsrv',
+        ];
+
+        return $drivers[$driver] ?? $driver;
     }
 
     public static function tableExists($table)

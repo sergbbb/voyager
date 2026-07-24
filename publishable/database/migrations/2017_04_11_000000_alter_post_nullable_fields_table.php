@@ -13,7 +13,7 @@ class AlterPostNullableFieldsTable extends Migration
      */
     public function up()
     {
-        $platform = \DB::getDoctrineSchemaManager()->getDatabasePlatform();
+        $platform = \TCG\Voyager\Database\Schema\SchemaManager::manager()->getDatabasePlatform();
         $platform->registerDoctrineTypeMapping('enum', 'string');
 
         Schema::table('posts', function (Blueprint $table) {
