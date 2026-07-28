@@ -88,6 +88,11 @@ abstract class SchemaManager
         return $drivers[$driver] ?? $driver;
     }
 
+    public static function getDatabasePlatform()
+    {
+        return static::getDatabaseConnection()->getDatabasePlatform();
+    }
+
     public static function tableExists($table)
     {
         if (!is_array($table)) {
@@ -118,7 +123,7 @@ abstract class SchemaManager
         $columns = static::manager()->listTableColumns($tableName);
 
         $foreignKeys = [];
-        if (static::manager()->getDatabasePlatform()->supportsForeignKeyConstraints()) {
+        if (static::getDatabasePlatform()->supportsForeignKeyConstraints()) {
             $foreignKeys = static::manager()->listTableForeignKeys($tableName);
         }
 
